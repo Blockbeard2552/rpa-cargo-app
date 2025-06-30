@@ -72,6 +72,7 @@
 			>
 				<OptionSelect
 					subcategories={cat.subcategories}
+					{model}
 					bind:singleSelections
 					bind:multipleSelections
 					bind:quantities

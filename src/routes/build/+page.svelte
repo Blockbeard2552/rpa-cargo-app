@@ -56,6 +56,8 @@
 
 					if (option.cost_mod === 'Each' || option.cost_mod === 'Per Foot') {
 						total += cost * quantity;
+					} else if (option.cost_mod === 'PLF') {
+						total += cost * model()!.length;
 					} else {
 						total += cost;
 					}
@@ -74,6 +76,8 @@
 
 						if (option.cost_mod === 'Each' || option.cost_mod === 'Per Foot') {
 							total += cost * quantity;
+						} else if (option.cost_mod === 'PLF') {
+							total += cost * model()!.length;
 						} else {
 							total += cost;
 						}

@@ -8,25 +8,31 @@
 
 	let {
 		subcategories,
+		model,
 		singleSelections = $bindable(),
 		multipleSelections = $bindable(),
 		quantities = $bindable(),
 		formatOptions
 	}: {
 		subcategories: any[];
+		model: Tables<'models'> | undefined;
 		singleSelections: Record<string, string>;
 		multipleSelections: Record<string, string[]>;
 		quantities: Record<string, number>;
 		formatOptions: (options: Tables<'options'>[]) => FormattedOption[];
 	} = $props();
 
-	// Helper function to get effective cost (cost * quantity)
+	// Helper function to get effective cost (cost * quantity or cost * model.length)
 	function getEffectiveCost(option: Tables<'options'>): number {
 		const quantity = quantities[String(option.id)] || 1;
+		const baseCost = Number(option.cost);
+
 		if (option.cost_mod === 'Each' || option.cost_mod === 'Per Foot') {
-			return Number(option.cost) * quantity;
+			return baseCost * quantity;
+		} else if (option.cost_mod === 'PLF' && model) {
+			return baseCost * model.length;
 		}
-		return Number(option.cost);
+		return baseCost;
 	}
 
 	// Helper function to get cost display text
@@ -37,6 +43,9 @@
 		if (option.cost_mod === 'Each' || option.cost_mod === 'Per Foot') {
 			const totalCost = baseCost * quantity;
 			return `${totalCost} (${quantity} × ${baseCost} ${option.cost_mod.toLowerCase()})`;
+		} else if (option.cost_mod === 'PLF' && model) {
+			const totalCost = baseCost * model.length;
+			return `${totalCost} (${model.length}' × ${baseCost} PLF)`;
 		}
 		return `${baseCost}`;
 	}

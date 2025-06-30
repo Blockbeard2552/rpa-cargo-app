@@ -31,19 +31,27 @@
 	// Helper function to get effective cost for an option
 	function getEffectiveCost(option: any): number {
 		const quantity = quantities[option.id] || 1;
+		const baseCost = Number(option.cost);
+
 		if (option.cost_mod === 'Each' || option.cost_mod === 'Per Foot') {
-			return option.cost * quantity;
+			return baseCost * quantity;
+		} else if (option.cost_mod === 'PLF' && model) {
+			return baseCost * model.length;
 		}
-		return option.cost;
+		return baseCost;
 	}
 
-	// Helper function to format option display with quantity
+	// Helper function to format option display with quantity/PLF calculation
 	function formatOptionWithQuantity(option: any): string {
 		const quantity = quantities[option.id] || 1;
+		const baseCost = Number(option.cost);
+
 		if (option.cost_mod === 'Each' || option.cost_mod === 'Per Foot') {
 			if (quantity > 1) {
 				return `${option.name} (${quantity}x)`;
 			}
+		} else if (option.cost_mod === 'PLF' && model) {
+			return `${option.name} (${model.length}' × $${baseCost} PLF)`;
 		}
 		return option.name;
 	}
@@ -141,6 +149,22 @@
 						<div class="flex items-start justify-between">
 							<div class="flex-1">
 								<span class="text-gray-900">{formatOptionWithQuantity(option)}</span>
+
+								<!-- Show calculation details for PLF items -->
+								{#if option.cost_mod === 'PLF' && model}
+									<div class="mt-1 ml-2 text-sm text-gray-500">
+										{model.length} feet × ${Number(option.cost).toLocaleString()} per linear foot
+									</div>
+								{/if}
+
+								<!-- Show calculation details for quantity items -->
+								{#if (option.cost_mod === 'Each' || option.cost_mod === 'Per Foot') && (quantities[option.id] || 1) > 1}
+									<div class="mt-1 ml-2 text-sm text-gray-500">
+										{quantities[option.id]} × ${Number(option.cost).toLocaleString()}
+										{option.cost_mod.toLowerCase()}
+									</div>
+								{/if}
+
 								{#if option.note}
 									<div class="mt-1 ml-2 text-sm text-gray-500 italic">
 										{option.note}
