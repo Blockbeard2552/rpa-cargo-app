@@ -25,6 +25,7 @@ export const load = async () => {
           id,
           name,
           cost,
+          note,
           cost_mod,
           color_options,
           for_lengths,

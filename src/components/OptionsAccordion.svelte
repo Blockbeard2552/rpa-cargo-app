@@ -24,7 +24,8 @@
 		if (!model) {
 			return options.map((opt) => ({
 				value: String(opt.id),
-				label: `${opt.name} (${opt.cost})`
+				label: `${opt.name} (${opt.cost})`,
+				note: opt.note || ''
 			}));
 		}
 
@@ -45,7 +46,8 @@
 			})
 			.map((opt) => ({
 				value: String(opt.id),
-				label: `${opt.name} (${opt.cost})`
+				label: `${opt.name} (${opt.cost})`,
+				note: opt.note || ''
 			}));
 	}
 </script>

@@ -74,7 +74,12 @@
 							<Select.Viewport>
 								{#each formatOptions(sub.options) as opt}
 									<Select.Item value={opt.value} label={opt.label}>
-										{opt.label}
+										<div>
+											{opt.label}
+											{#if opt.note}
+												<span class="text-xs text-gray-500"> - {opt.note}</span>
+											{/if}
+										</div>
 									</Select.Item>
 								{/each}
 							</Select.Viewport>
@@ -174,6 +179,9 @@
 								{#each formatOptions(sub.options) as opt}
 									<Select.Item value={opt.value} label={opt.label}>
 										{opt.label}
+										{#if opt.note}
+											<span class="text-xs text-gray-500"> - {opt.note}</span>
+										{/if}
 									</Select.Item>
 								{/each}
 							</Select.Viewport>

@@ -13,6 +13,7 @@ export interface ConfiguratorData {
 export interface FormattedOption {
 	value: string;
 	label: string;
+	note?: string;
 }
 
 export interface SelectionState {
