@@ -1,0 +1,172 @@
+<script lang="ts">
+	import type { Tables } from '../lib/types/database.types';
+
+	let {
+		model,
+		selectedOptions,
+		totalPrice,
+		quantities
+	}: {
+		model: Tables<'models'> | undefined;
+		selectedOptions: Array<{
+			id: string;
+			name: string;
+			cost: number;
+			cost_mod: string;
+			note: string;
+			category: string;
+			subcategory: string;
+		}>;
+		totalPrice: number;
+		quantities: Record<string, number>;
+	} = $props();
+
+	// Get current date
+	const currentDate = new Date().toLocaleDateString('en-US', {
+		year: 'numeric',
+		month: 'long',
+		day: 'numeric'
+	});
+
+	// Helper function to get effective cost for an option
+	function getEffectiveCost(option: any): number {
+		const quantity = quantities[option.id] || 1;
+		if (option.cost_mod === 'Each' || option.cost_mod === 'Per Foot') {
+			return option.cost * quantity;
+		}
+		return option.cost;
+	}
+
+	// Helper function to format option display with quantity
+	function formatOptionWithQuantity(option: any): string {
+		const quantity = quantities[option.id] || 1;
+		if (option.cost_mod === 'Each' || option.cost_mod === 'Per Foot') {
+			if (quantity > 1) {
+				return `${option.name} (${quantity}x)`;
+			}
+		}
+		return option.name;
+	}
+
+	// Group options by category
+	let groupedOptions = $derived(() => {
+		const groups: Record<string, Array<any>> = {};
+		selectedOptions.forEach((option) => {
+			if (!groups[option.category]) {
+				groups[option.category] = [];
+			}
+			groups[option.category].push(option);
+		});
+		return groups;
+	});
+
+	// Standard features list - these should come from your model data
+	let standardFeatures = $derived(() => {
+		if (!model) return [];
+		return [
+			model.standard_axle,
+			model.standard_axle_load,
+			model.hitch,
+			model.standard_tires,
+			model.standard_exterior_walls,
+			model.standard_mainframe,
+			model.standard_jack
+		].filter(Boolean); // Remove any null/undefined values
+	});
+
+	// Split standard features into two columns
+	let leftFeatures = $derived(() =>
+		standardFeatures().slice(0, Math.ceil(standardFeatures().length / 2))
+	);
+	let rightFeatures = $derived(() =>
+		standardFeatures().slice(Math.ceil(standardFeatures().length / 2))
+	);
+</script>
+
+{#if model}
+	<div
+		class="mx-auto max-w-2xl rounded-lg border border-gray-300 bg-white p-6 print:border-gray-400 print:shadow-none"
+	>
+		<!-- Header -->
+		<div class="mb-6">
+			<h1 class="mb-2 text-2xl font-bold text-gray-900">Order Summary</h1>
+			<p class="text-gray-600">Date: {currentDate}</p>
+		</div>
+
+		<!-- Selected Model -->
+		<div class="mb-6">
+			<div class="mb-3 flex items-center justify-between">
+				<h2 class="text-xl font-bold text-gray-900">Selected Model</h2>
+			</div>
+			<div class="flex items-center justify-between">
+				<span class="text-lg">{model.width} X {model.length} {model.axle}</span>
+				<span class="text-lg font-semibold">${(model.starting_price ?? 0).toLocaleString()}.00</span
+				>
+			</div>
+		</div>
+
+		<!-- Standard Features -->
+		{#if standardFeatures().length > 0}
+			<div class="mb-6">
+				<h2 class="mb-4 text-xl font-bold text-gray-900">Standard Features</h2>
+				<div class="grid grid-cols-1 gap-x-6 gap-y-2 md:grid-cols-2">
+					<!-- Left Column -->
+					<div class="space-y-2">
+						{#each leftFeatures() as feature}
+							<div class="flex items-start">
+								<span class="mr-2 text-gray-900">•</span>
+								<span class="text-gray-900">{feature}</span>
+							</div>
+						{/each}
+					</div>
+					<!-- Right Column -->
+					<div class="space-y-2">
+						{#each rightFeatures() as feature}
+							<div class="flex items-start">
+								<span class="mr-2 text-gray-900">•</span>
+								<span class="text-gray-900">{feature}</span>
+							</div>
+						{/each}
+					</div>
+				</div>
+			</div>
+		{/if}
+
+		<!-- Selected Options by Category -->
+		{#each Object.entries(groupedOptions()) as [categoryName, options]}
+			<div class="mb-6">
+				<h2 class="mb-3 text-xl font-bold text-gray-900">{categoryName}</h2>
+				<div class="space-y-2">
+					{#each options as option}
+						<div class="flex items-start justify-between">
+							<div class="flex-1">
+								<span class="text-gray-900">{formatOptionWithQuantity(option)}</span>
+								{#if option.note}
+									<div class="mt-1 ml-2 text-sm text-gray-500 italic">
+										{option.note}
+									</div>
+								{/if}
+								{#if option.subcategory && option.subcategory !== option.name}
+									<div class="ml-4 text-sm text-gray-500">
+										{option.subcategory}
+									</div>
+								{/if}
+							</div>
+							<span class="ml-4 text-lg font-semibold"
+								>${getEffectiveCost(option).toLocaleString()}.00</span
+							>
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/each}
+
+		<!-- Total Cost -->
+		<div class="mt-6 border-t border-gray-300 pt-4">
+			<div class="flex items-center justify-between">
+				<h2 class="text-2xl font-bold text-gray-900">Total Cost</h2>
+				<span class="text-3xl font-bold text-gray-900">${totalPrice.toLocaleString()}.00</span>
+			</div>
+		</div>
+	</div>
+{/if}
