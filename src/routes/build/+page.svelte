@@ -36,6 +36,9 @@
 	let singleSelections = $state<Record<string, string>>({});
 	let multipleSelections = $state<Record<string, string[]>>({});
 	let quantities = $state<Record<string, number>>({});
+	let optionDimensions = $state<
+		Record<string, { width?: number; height?: number; location?: string }>
+	>({});
 
 	// Update dealer markup when model changes and clear selections
 	$effect(() => {
@@ -44,6 +47,7 @@
 			singleSelections = {};
 			multipleSelections = {};
 			quantities = {};
+			optionDimensions = {};
 			// Set dealer markup from model
 			dealerMarkup = Number(model()!.dealer_mark_up) || 0;
 		}
@@ -364,6 +368,7 @@
 					bind:singleSelections
 					bind:multipleSelections
 					bind:quantities
+					bind:optionDimensions
 				/>
 			{/if}
 		</div>

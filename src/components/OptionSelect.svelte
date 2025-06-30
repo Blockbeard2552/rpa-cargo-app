@@ -14,6 +14,7 @@
 		singleSelections = $bindable(),
 		multipleSelections = $bindable(),
 		quantities = $bindable(),
+		optionDimensions = $bindable(),
 		formatOptions
 	}: {
 		subcategories: any[];
@@ -21,8 +22,30 @@
 		singleSelections: Record<string, string>;
 		multipleSelections: Record<string, string[]>;
 		quantities: Record<string, number>;
+		optionDimensions: Record<string, { width?: number; height?: number; location?: string }>;
 		formatOptions: (options: Tables<'options'>[]) => FormattedOption[];
 	} = $props();
+
+	// Initialize dimension objects when options are selected
+	$effect(() => {
+		// Initialize for single selections
+		Object.values(singleSelections).forEach((selectedId) => {
+			if (selectedId && !optionDimensions[selectedId]) {
+				optionDimensions[selectedId] = {};
+			}
+		});
+
+		// Initialize for multiple selections
+		Object.values(multipleSelections).forEach((selectedIds) => {
+			if (selectedIds?.length > 0) {
+				selectedIds.forEach((selectedId) => {
+					if (!optionDimensions[selectedId]) {
+						optionDimensions[selectedId] = {};
+					}
+				});
+			}
+		});
+	});
 
 	// Helper function to get effective cost (cost * quantity, cost * model.length, or cost * model.axle_value)
 	function getEffectiveCost(option: Tables<'options'>): number {
@@ -46,15 +69,15 @@
 
 		if (option.cost_mod === 'Each' || option.cost_mod === 'Per Foot') {
 			const totalCost = baseCost * quantity;
-			return `${totalCost} (${quantity} × ${baseCost} ${option.cost_mod.toLowerCase()})`;
+			return `$${totalCost} (${quantity} × $${baseCost} ${option.cost_mod.toLowerCase()})`;
 		} else if (option.cost_mod === 'PLF' && model) {
 			const totalCost = baseCost * model.length;
-			return `${totalCost} (${model.length}' × ${baseCost} PLF)`;
+			return `$${totalCost} (${model.length}' × $${baseCost} PLF)`;
 		} else if (option.cost_mod === 'Per Axle' && model) {
 			const totalCost = baseCost * model.axle_value;
-			return `${totalCost} (${model.axle_value} axles × ${baseCost} per axle)`;
+			return `$${totalCost} (${model.axle_value} axles × $${baseCost} per axle)`;
 		}
-		return `${baseCost}`;
+		return `$${baseCost}`;
 	}
 
 	// Function to update quantity and ensure minimum of 1
@@ -108,47 +131,47 @@
 
 				<!-- Pills for multiple selection -->
 				{#if multipleSelections[sub.id]?.length > 0}
-					<div class="flex max-w-[296px] flex-wrap gap-2">
+					<div class="space-y-3">
 						{#each multipleSelections[sub.id] as selectedId}
 							{@const selectedOption = sub.options.find(
 								(opt: Tables<'options'>) => String(opt.id) === selectedId
 							)}
 							{#if selectedOption}
-								<div class="space-y-2">
-									<div
-										class="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-100 px-2 py-1 text-xs text-blue-800"
+								<!-- Pill -->
+								<div
+									class="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-100 px-2 py-1 text-xs text-blue-800"
+								>
+									<span>{selectedOption.name} ({getCostDisplay(selectedOption)})</span>
+									<button
+										type="button"
+										class="ml-1 rounded-full p-0.5 text-blue-600 transition-colors hover:bg-blue-200 hover:text-blue-800"
+										onclick={() => {
+											multipleSelections[sub.id] = multipleSelections[sub.id].filter(
+												(id) => id !== selectedId
+											);
+											delete quantities[selectedId];
+											delete optionDimensions[selectedId];
+										}}
+										aria-label="Remove option"
 									>
-										<span>{selectedOption.name} ({getCostDisplay(selectedOption)})</span>
-										<button
-											type="button"
-											class="ml-1 rounded-full p-0.5 text-blue-600 transition-colors hover:bg-blue-200 hover:text-blue-800"
-											onclick={() => {
-												multipleSelections[sub.id] = multipleSelections[sub.id].filter(
-													(id) => id !== selectedId
-												);
-												// Clean up quantity when option is removed
-												delete quantities[selectedId];
-											}}
-											aria-label="Remove option"
+										<svg
+											class="h-3 w-3"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
 										>
-											<svg
-												class="h-3 w-3"
-												viewBox="0 0 24 24"
-												fill="none"
-												stroke="currentColor"
-												stroke-width="2"
-											>
-												<path d="M18 6L6 18M6 6l12 12" />
-											</svg>
-										</button>
-									</div>
+											<path d="M18 6L6 18M6 6l12 12" />
+										</svg>
+									</button>
+								</div>
 
-									<!-- Quantity input for Each/Per Foot items -->
+								<!-- Inputs below the pill -->
+								<div class="ml-4 space-y-2">
+									<!-- Quantity input -->
 									{#if selectedOption.cost_mod === 'Each' || selectedOption.cost_mod === 'Per Foot'}
-										<div class="ml-2 flex items-center gap-2">
-											<label for="qty-{selectedId}" class="text-xs text-blue-700">
-												Quantity:
-											</label>
+										<div class="flex items-center gap-2">
+											<label for="qty-{selectedId}" class="text-xs text-blue-700">Quantity:</label>
 											<input
 												id="qty-{selectedId}"
 												type="number"
@@ -161,6 +184,56 @@
 											<span class="text-xs text-blue-600"
 												>{selectedOption.cost_mod.toLowerCase()}</span
 											>
+										</div>
+									{/if}
+
+									<!-- Width input -->
+									{#if selectedOption.include_width}
+										<div class="flex items-center gap-2">
+											<label for="width-{selectedId}" class="text-xs text-blue-700">Width:</label>
+											<input
+												id="width-{selectedId}"
+												type="number"
+												min="0"
+												step="0.25"
+												bind:value={optionDimensions[selectedId].width}
+												class="w-20 rounded border border-blue-300 px-2 py-1 text-xs"
+												placeholder="Width"
+											/>
+											<span class="text-xs text-blue-600">inches</span>
+										</div>
+									{/if}
+
+									<!-- Height input -->
+									{#if selectedOption.include_height}
+										<div class="flex items-center gap-2">
+											<label for="height-{selectedId}" class="text-xs text-blue-700">Height:</label>
+											<input
+												id="height-{selectedId}"
+												type="number"
+												min="0"
+												step="0.25"
+												bind:value={optionDimensions[selectedId].height}
+												class="w-20 rounded border border-blue-300 px-2 py-1 text-xs"
+												placeholder="Height"
+											/>
+											<span class="text-xs text-blue-600">inches</span>
+										</div>
+									{/if}
+
+									<!-- Location input -->
+									{#if selectedOption.include_location}
+										<div class="flex items-center gap-2">
+											<label for="location-{selectedId}" class="text-xs text-blue-700"
+												>Location:</label
+											>
+											<input
+												id="location-{selectedId}"
+												type="text"
+												bind:value={optionDimensions[selectedId].location}
+												class="w-32 rounded border border-blue-300 px-2 py-1 text-xs"
+												placeholder="Location"
+											/>
 										</div>
 									{/if}
 								</div>
@@ -214,24 +287,19 @@
 						(opt: Tables<'options'>) => String(opt.id) === singleSelections[sub.id]
 					)}
 					{#if selectedOption}
-						<div class="bg-gray-100 p-1 text-xs text-gray-500">
-							DEBUG: cost_mod = "{selectedOption.cost_mod}" | Should show input: {selectedOption.cost_mod ===
-								'Each' || selectedOption.cost_mod === 'Per Foot'}
-						</div>
-
-						<div class="flex max-w-[296px] flex-col gap-2">
+						<div class="space-y-2">
+							<!-- Pill -->
 							<div
 								class="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-100 px-2 py-1 text-xs text-green-800"
 							>
 								<span>{selectedOption.name} ({getCostDisplay(selectedOption)})</span>
 								<button
 									type="button"
-									class="ml-1 rounded-full p-0.5 text-green-600 transition-colors hover:bg-green-200 hover:text-green-800"
 									onclick={() => {
 										const optionId = singleSelections[sub.id];
 										singleSelections[sub.id] = '';
-										// Clean up quantity when option is removed
 										delete quantities[optionId];
+										delete optionDimensions[optionId];
 									}}
 									aria-label="Remove option"
 								>
@@ -247,28 +315,92 @@
 								</button>
 							</div>
 
-							<!-- Quantity input for Each/Per Foot items -->
-							{#if selectedOption.cost_mod === 'Each' || selectedOption.cost_mod === 'Per Foot'}
-								<div class="ml-2 flex items-center gap-2">
-									<label for="qty-single-{singleSelections[sub.id]}" class="text-xs text-green-700">
-										Quantity:
-									</label>
-									<input
-										id="qty-single-{singleSelections[sub.id]}"
-										type="number"
-										min="1"
-										bind:value={quantities[singleSelections[sub.id]]}
-										oninput={(e) =>
-											updateQuantity(
-												singleSelections[sub.id],
-												parseInt(e.currentTarget.value) || 1
-											)}
-										class="w-16 rounded border border-green-300 px-2 py-1 text-xs"
-									/>
-									<span class="text-xs text-green-600">{selectedOption.cost_mod.toLowerCase()}</span
-									>
-								</div>
-							{/if}
+							<!-- Inputs below the pill -->
+							<div class="ml-4 space-y-2">
+								<!-- Quantity input -->
+								{#if selectedOption.cost_mod === 'Each' || selectedOption.cost_mod === 'Per Foot'}
+									<div class="flex items-center gap-2">
+										<label
+											for="qty-single-{singleSelections[sub.id]}"
+											class="text-xs text-green-700"
+										>
+											Quantity:
+										</label>
+										<input
+											id="qty-single-{singleSelections[sub.id]}"
+											type="number"
+											min="1"
+											bind:value={quantities[singleSelections[sub.id]]}
+											oninput={(e) =>
+												updateQuantity(
+													singleSelections[sub.id],
+													parseInt(e.currentTarget.value) || 1
+												)}
+											class="w-16 rounded border border-green-300 px-2 py-1 text-xs"
+										/>
+										<span class="text-xs text-green-600"
+											>{selectedOption.cost_mod.toLowerCase()}</span
+										>
+									</div>
+								{/if}
+
+								<!-- Width input -->
+								{#if selectedOption.include_width}
+									<div class="flex items-center gap-2">
+										<label
+											for="width-single-{singleSelections[sub.id]}"
+											class="text-xs text-green-700">Width:</label
+										>
+										<input
+											id="width-single-{singleSelections[sub.id]}"
+											type="number"
+											min="0"
+											step="0.25"
+											bind:value={optionDimensions[singleSelections[sub.id]].width}
+											class="w-20 rounded border border-green-300 px-2 py-1 text-xs"
+											placeholder="Width"
+										/>
+										<span class="text-xs text-green-600">inches</span>
+									</div>
+								{/if}
+
+								<!-- Height input -->
+								{#if selectedOption.include_height}
+									<div class="flex items-center gap-2">
+										<label
+											for="height-single-{singleSelections[sub.id]}"
+											class="text-xs text-green-700">Height:</label
+										>
+										<input
+											id="height-single-{singleSelections[sub.id]}"
+											type="number"
+											min="0"
+											step="0.25"
+											bind:value={optionDimensions[singleSelections[sub.id]].height}
+											class="w-20 rounded border border-green-300 px-2 py-1 text-xs"
+											placeholder="Height"
+										/>
+										<span class="text-xs text-green-600">inches</span>
+									</div>
+								{/if}
+
+								<!-- Location input -->
+								{#if selectedOption.include_location}
+									<div class="flex items-center gap-2">
+										<label
+											for="location-single-{singleSelections[sub.id]}"
+											class="text-xs text-green-700">Location:</label
+										>
+										<input
+											id="location-single-{singleSelections[sub.id]}"
+											type="text"
+											bind:value={optionDimensions[singleSelections[sub.id]].location}
+											class="w-32 rounded border border-green-300 px-2 py-1 text-xs"
+											placeholder="Location"
+										/>
+									</div>
+								{/if}
+							</div>
 						</div>
 					{/if}
 				{/if}

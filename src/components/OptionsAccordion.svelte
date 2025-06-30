@@ -12,13 +12,15 @@
 		model,
 		singleSelections = $bindable(),
 		multipleSelections = $bindable(),
-		quantities = $bindable()
+		quantities = $bindable(),
+		optionDimensions = $bindable()
 	}: {
 		categories: any[];
 		model: Tables<'models'> | undefined;
 		singleSelections: Record<string, string>;
 		multipleSelections: Record<string, string[]>;
 		quantities: Record<string, number>;
+		optionDimensions: Record<string, { width?: number; height?: number; location?: string }>;
 	} = $props();
 
 	// Filter options based on selected model
@@ -78,6 +80,7 @@
 					bind:singleSelections
 					bind:multipleSelections
 					bind:quantities
+					bind:optionDimensions
 					{formatOptions}
 				/>
 			</Accordion.Content>
