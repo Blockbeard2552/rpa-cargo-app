@@ -22,7 +22,7 @@
 		formatOptions: (options: Tables<'options'>[]) => FormattedOption[];
 	} = $props();
 
-	// Helper function to get effective cost (cost * quantity or cost * model.length)
+	// Helper function to get effective cost (cost * quantity, cost * model.length, or cost * model.axle_value)
 	function getEffectiveCost(option: Tables<'options'>): number {
 		const quantity = quantities[String(option.id)] || 1;
 		const baseCost = Number(option.cost);
@@ -31,6 +31,8 @@
 			return baseCost * quantity;
 		} else if (option.cost_mod === 'PLF' && model) {
 			return baseCost * model.length;
+		} else if (option.cost_mod === 'Per Axle' && model) {
+			return baseCost * model.axle_value;
 		}
 		return baseCost;
 	}
@@ -46,6 +48,9 @@
 		} else if (option.cost_mod === 'PLF' && model) {
 			const totalCost = baseCost * model.length;
 			return `${totalCost} (${model.length}' × ${baseCost} PLF)`;
+		} else if (option.cost_mod === 'Per Axle' && model) {
+			const totalCost = baseCost * model.axle_value;
+			return `${totalCost} (${model.axle_value} axles × ${baseCost} per axle)`;
 		}
 		return `${baseCost}`;
 	}

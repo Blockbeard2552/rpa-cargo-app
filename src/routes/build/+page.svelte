@@ -40,7 +40,7 @@
 		}
 	});
 
-	// Calculate total price with quantity support
+	// Calculate total price with quantity, PLF, and Per Axle support
 	let totalPrice = $derived(() => {
 		if (!model()) return 0;
 
@@ -58,6 +58,8 @@
 						total += cost * quantity;
 					} else if (option.cost_mod === 'PLF') {
 						total += cost * model()!.length;
+					} else if (option.cost_mod === 'Per Axle') {
+						total += cost * model()!.axle_value;
 					} else {
 						total += cost;
 					}
@@ -78,6 +80,8 @@
 							total += cost * quantity;
 						} else if (option.cost_mod === 'PLF') {
 							total += cost * model()!.length;
+						} else if (option.cost_mod === 'Per Axle') {
+							total += cost * model()!.axle_value;
 						} else {
 							total += cost;
 						}

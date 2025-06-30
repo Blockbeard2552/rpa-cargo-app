@@ -37,11 +37,13 @@
 			return baseCost * quantity;
 		} else if (option.cost_mod === 'PLF' && model) {
 			return baseCost * model.length;
+		} else if (option.cost_mod === 'Per Axle' && model) {
+			return baseCost * model.axle_value;
 		}
 		return baseCost;
 	}
 
-	// Helper function to format option display with quantity/PLF calculation
+	// Helper function to format option display with calculation details
 	function formatOptionWithQuantity(option: any): string {
 		const quantity = quantities[option.id] || 1;
 		const baseCost = Number(option.cost);
@@ -52,6 +54,8 @@
 			}
 		} else if (option.cost_mod === 'PLF' && model) {
 			return `${option.name} (${model.length}' × $${baseCost} PLF)`;
+		} else if (option.cost_mod === 'Per Axle' && model) {
+			return `${option.name} (${model.axle_value} axles × $${baseCost} per axle)`;
 		}
 		return option.name;
 	}
@@ -154,6 +158,13 @@
 								{#if option.cost_mod === 'PLF' && model}
 									<div class="mt-1 ml-2 text-sm text-gray-500">
 										{model.length} feet × ${Number(option.cost).toLocaleString()} per linear foot
+									</div>
+								{/if}
+
+								<!-- Show calculation details for Per Axle items -->
+								{#if option.cost_mod === 'Per Axle' && model}
+									<div class="mt-1 ml-2 text-sm text-gray-500">
+										{model.axle_value} axles × ${Number(option.cost).toLocaleString()} per axle
 									</div>
 								{/if}
 
