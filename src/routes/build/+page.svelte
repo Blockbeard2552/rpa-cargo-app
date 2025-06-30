@@ -94,8 +94,26 @@
 	let unitCost = $derived(() => {
 		if (!model()) return 0;
 
-		const mfgBaseCost = Number(model()!.mfg_base_cost) || 0;
+		const { hasPorch, porchLength } = porchInfo();
+
+		let mfgBaseCost = Number(model()!.mfg_base_cost) || 0;
 		const mfgSurcharge = Number(model()!.mfg_surcharge) || 0;
+
+		// If porch is selected, find the model with the box length
+		if (hasPorch && porchLength > 0) {
+			const boxLength = model()!.length - porchLength;
+
+			// Find a model with same width/axle but box length
+			const boxModel = models.find(
+				(m: Tables<'models'>) =>
+					m.width === model()!.width && m.axle === model()!.axle && m.length === boxLength
+			);
+
+			if (boxModel) {
+				mfgBaseCost = Number(boxModel.mfg_base_cost) || 0;
+			}
+			// If no matching box model found, use original (fallback)
+		}
 
 		return mfgBaseCost + mfgSurcharge + dealerMarkup;
 	});
@@ -264,8 +282,26 @@
 
 		const { hasPorch, porchLength } = porchInfo();
 
+		let mfgBaseCost = Number(model()!.mfg_base_cost) || 0;
+		let boxModelFound = false;
+
+		// Same logic as unitCost for debugging
+		if (hasPorch && porchLength > 0) {
+			const boxLength = model()!.length - porchLength;
+			const boxModel = models.find(
+				(m: Tables<'models'>) =>
+					m.width === model()!.width && m.axle === model()!.axle && m.length === boxLength
+			);
+
+			if (boxModel) {
+				mfgBaseCost = Number(boxModel.mfg_base_cost) || 0;
+				boxModelFound = true;
+			}
+		}
+
 		return {
-			mfgBaseCost: Number(model()!.mfg_base_cost) || 0,
+			originalMfgBaseCost: Number(model()!.mfg_base_cost) || 0,
+			adjustedMfgBaseCost: mfgBaseCost,
 			mfgSurcharge: Number(model()!.mfg_surcharge) || 0,
 			dealerMarkup: dealerMarkup,
 			unitCost: unitCost(),
@@ -273,7 +309,8 @@
 			optionsCost: totalPrice() - unitCost(),
 			hasPorch: hasPorch,
 			porchLength: porchLength,
-			boxLength: boxLength()
+			boxLength: boxLength(),
+			boxModelFound: boxModelFound
 		};
 	});
 </script>
@@ -296,7 +333,7 @@
 						class="w-full max-w-[296px] rounded-lg border border-blue-200 bg-blue-50 p-4 text-xs"
 					>
 						<div><strong>Debug Info:</strong></div>
-						<div>MFG Base Cost: ${debugInfo()?.mfgBaseCost}</div>
+						<div>OG MFG Base Cost: ${debugInfo()?.originalMfgBaseCost}</div>
 						<div>MFG Surcharge: ${debugInfo()?.mfgSurcharge}</div>
 						<div>Dealer Markup: ${debugInfo()?.dealerMarkup}</div>
 						<div>Unit Cost: ${debugInfo()?.unitCost}</div>
@@ -305,6 +342,8 @@
 						<div>Has Porch: {debugInfo()?.hasPorch}</div>
 						<div>Porch Length: {debugInfo()?.porchLength}'</div>
 						<div>Box Length: {debugInfo()?.boxLength}'</div>
+						<div>Box Model Found: {debugInfo()?.boxModelFound}</div>
+						<div>New MFG Base Cost: ${debugInfo()?.adjustedMfgBaseCost}</div>
 					</div>
 				{/if}
 
