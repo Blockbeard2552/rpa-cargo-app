@@ -1,5 +1,8 @@
+<!-- src/routes/build/+page.svelte -->
+
 <script lang="ts">
 	import ModelSelector from '../../components/ModelSelector.svelte';
+	import DealerMarkupInput from '../../components/DealerMarkupInput.svelte';
 	import OptionsAccordion from '../../components/OptionsAccordion.svelte';
 	import PriceDisplay from '../../components/PriceDisplay.svelte';
 	import OrderSummary from '../../components/OrderSummary.svelte';
@@ -18,6 +21,9 @@
 	let modelId = $state<string>('');
 	let model = $derived(() => models.find((m: Tables<'models'>) => m.id === modelId));
 
+	// Dealer markup state - initialize as 0, will be set when model loads
+	let dealerMarkup = $state<number>(0);
+
 	// Format models for dropdown
 	let formattedModels = $derived(() =>
 		models.map((m: Tables<'models'>) => ({
@@ -31,20 +37,129 @@
 	let multipleSelections = $state<Record<string, string[]>>({});
 	let quantities = $state<Record<string, number>>({});
 
-	// Clear selections when model changes
+	// Update dealer markup when model changes and clear selections
 	$effect(() => {
-		if (modelId) {
+		if (model() && modelId) {
+			// Reset selections
 			singleSelections = {};
 			multipleSelections = {};
 			quantities = {};
+			// Set dealer markup from model
+			dealerMarkup = Number(model()!.dealer_mark_up) || 0;
 		}
 	});
 
-	// Calculate total price with quantity, PLF, and Per Axle support
+	// Helper to check if porch is selected (ID 230) and get porch length
+	let porchInfo = $derived(() => {
+		let porchLength = 0;
+		let hasPorch = false;
+
+		// Check single selections for porch (ID 230)
+		Object.values(singleSelections).forEach((selectedId) => {
+			if (selectedId === '230') {
+				hasPorch = true;
+				porchLength = quantities[selectedId] || 0;
+			}
+		});
+
+		// Check multiple selections for porch (ID 230)
+		Object.values(multipleSelections).forEach((selectedIds) => {
+			if (selectedIds?.length > 0) {
+				selectedIds.forEach((selectedId) => {
+					if (selectedId === '230') {
+						hasPorch = true;
+						porchLength += quantities[selectedId] || 0;
+					}
+				});
+			}
+		});
+
+		return { hasPorch, porchLength };
+	});
+
+	// Calculate box length when porch is present
+	let boxLength = $derived(() => {
+		if (!model()) return 0;
+
+		const { hasPorch, porchLength } = porchInfo();
+
+		if (hasPorch && porchLength > 0) {
+			return model()!.length - porchLength;
+		}
+
+		return model()!.length;
+	});
+
+	// Calculate base price using manufacturer pricing + dealer markup
+	let unitCost = $derived(() => {
+		if (!model()) return 0;
+
+		const mfgBaseCost = Number(model()!.mfg_base_cost) || 0;
+		const mfgSurcharge = Number(model()!.mfg_surcharge) || 0;
+
+		return mfgBaseCost + mfgSurcharge + dealerMarkup;
+	});
+
+	// Get selected options with category info for summary
+	let selectedOptions = $derived(() => {
+		const options: Array<{
+			id: string;
+			name: string;
+			cost: number;
+			cost_mod: string;
+			note: string;
+			category: string;
+			subcategory: string;
+		}> = [];
+
+		// Add single selections
+		Object.entries(singleSelections).forEach(([subId, selectedId]) => {
+			if (selectedId) {
+				const option = findOptionById(selectedId, categories);
+				const categoryInfo = findCategoryInfoForOption(selectedId, categories);
+				if (option && categoryInfo) {
+					options.push({
+						id: selectedId,
+						name: option.name,
+						cost: Number(option.cost),
+						cost_mod: option.cost_mod || '',
+						note: option.note || '',
+						category: categoryInfo.categoryName,
+						subcategory: categoryInfo.subcategoryName
+					});
+				}
+			}
+		});
+
+		// Add multiple selections
+		Object.entries(multipleSelections).forEach(([subId, selectedIds]) => {
+			if (selectedIds?.length > 0) {
+				selectedIds.forEach((selectedId) => {
+					const option = findOptionById(selectedId, categories);
+					const categoryInfo = findCategoryInfoForOption(selectedId, categories);
+					if (option && categoryInfo) {
+						options.push({
+							id: selectedId,
+							name: option.name,
+							cost: Number(option.cost),
+							cost_mod: option.cost_mod || '',
+							note: option.note || '',
+							category: categoryInfo.categoryName,
+							subcategory: categoryInfo.subcategoryName
+						});
+					}
+				});
+			}
+		});
+
+		return options;
+	});
+
+	// Calculate total price with all cost modifiers
 	let totalPrice = $derived(() => {
 		if (!model()) return 0;
 
-		let total = Number(model()!.starting_price) || 0;
+		let total = unitCost(); // Start with calculated base price
 
 		// Add costs from single selections
 		Object.values(singleSelections).forEach((selectedId) => {
@@ -113,90 +228,6 @@
 		});
 	});
 
-	// Clear selections when model changes
-	$effect(() => {
-		if (modelId) {
-			singleSelections = {};
-			multipleSelections = {};
-			quantities = {};
-		}
-	});
-
-	// Get selected options with category info for summary
-	let selectedOptions = $derived(() => {
-		const options: Array<{
-			id: string;
-			name: string;
-			cost: number;
-			cost_mod: string;
-			note: string;
-			category: string;
-			subcategory: string;
-		}> = [];
-
-		// Add single selections
-		Object.entries(singleSelections).forEach(([subId, selectedId]) => {
-			if (selectedId) {
-				const option = findOptionById(selectedId, categories);
-				const categoryInfo = findCategoryInfoForOption(selectedId, categories);
-				if (option && categoryInfo) {
-					options.push({
-						id: selectedId,
-						name: option.name,
-						cost: Number(option.cost),
-						cost_mod: option.cost_mod || '',
-						note: option.note || '',
-						category: categoryInfo.categoryName,
-						subcategory: categoryInfo.subcategoryName
-					});
-				}
-			}
-		});
-
-		// Add multiple selections
-		Object.entries(multipleSelections).forEach(([subId, selectedIds]) => {
-			if (selectedIds?.length > 0) {
-				selectedIds.forEach((selectedId) => {
-					const option = findOptionById(selectedId, categories);
-					const categoryInfo = findCategoryInfoForOption(selectedId, categories);
-					if (option && categoryInfo) {
-						options.push({
-							id: selectedId,
-							name: option.name,
-							cost: Number(option.cost),
-							cost_mod: option.cost_mod || '',
-							note: option.note || '',
-							category: categoryInfo.categoryName,
-							subcategory: categoryInfo.subcategoryName
-						});
-					}
-				});
-			}
-		});
-
-		return options;
-	});
-
-	// Initialize quantity when option is selected
-	$effect(() => {
-		// Set default quantities for newly selected options
-		Object.values(singleSelections).forEach((selectedId) => {
-			if (selectedId && !quantities[selectedId]) {
-				quantities[selectedId] = 1;
-			}
-		});
-
-		Object.values(multipleSelections).forEach((selectedIds) => {
-			if (selectedIds?.length > 0) {
-				selectedIds.forEach((selectedId) => {
-					if (!quantities[selectedId]) {
-						quantities[selectedId] = 1;
-					}
-				});
-			}
-		});
-	});
-
 	// Helper function to find option by ID across all categories
 	function findOptionById(id: string, categories: any[]): Tables<'options'> | undefined {
 		for (const cat of categories) {
@@ -226,6 +257,25 @@
 		}
 		return undefined;
 	}
+
+	// Add some debug info temporarily
+	let debugInfo = $derived(() => {
+		if (!model()) return null;
+
+		const { hasPorch, porchLength } = porchInfo();
+
+		return {
+			mfgBaseCost: Number(model()!.mfg_base_cost) || 0,
+			mfgSurcharge: Number(model()!.mfg_surcharge) || 0,
+			dealerMarkup: dealerMarkup,
+			unitCost: unitCost(),
+			totalPrice: totalPrice(),
+			optionsCost: totalPrice() - unitCost(),
+			hasPorch: hasPorch,
+			porchLength: porchLength,
+			boxLength: boxLength()
+		};
+	});
 </script>
 
 <div class="mx-auto grid max-w-7xl grid-cols-1 gap-8 p-4 lg:grid-cols-2">
@@ -235,10 +285,38 @@
 			<!-- Model selector -->
 			<ModelSelector bind:modelId formattedModels={() => formattedModels()} />
 
-			<!-- Show options and price only when model is selected -->
+			<!-- Show dealer markup input and other controls when model is selected -->
 			{#if model()}
+				<!-- Dealer Markup Input -->
+				<DealerMarkupInput bind:dealerMarkup defaultMarkup={Number(model()!.dealer_mark_up) || 0} />
+
+				<!-- Debug info (remove this later) -->
+				{#if debugInfo()}
+					<div
+						class="w-full max-w-[296px] rounded-lg border border-blue-200 bg-blue-50 p-4 text-xs"
+					>
+						<div><strong>Debug Info:</strong></div>
+						<div>MFG Base Cost: ${debugInfo()?.mfgBaseCost}</div>
+						<div>MFG Surcharge: ${debugInfo()?.mfgSurcharge}</div>
+						<div>Dealer Markup: ${debugInfo()?.dealerMarkup}</div>
+						<div>Unit Cost: ${debugInfo()?.unitCost}</div>
+						<div>Total Price: ${debugInfo()?.totalPrice}</div>
+						<div>Options Cost: ${debugInfo()?.optionsCost}</div>
+						<div>Has Porch: {debugInfo()?.hasPorch}</div>
+						<div>Porch Length: {debugInfo()?.porchLength}'</div>
+						<div>Box Length: {debugInfo()?.boxLength}'</div>
+					</div>
+				{/if}
+
 				<!-- Price Display -->
-				<PriceDisplay totalPrice={totalPrice()} basePrice={model()!.starting_price} />
+				<PriceDisplay
+					totalPrice={totalPrice()}
+					unitCost={unitCost()}
+					showBreakdown={true}
+					mfgBaseCost={Number(model()!.mfg_base_cost) || 0}
+					mfgSurcharge={Number(model()!.mfg_surcharge) || 0}
+					{dealerMarkup}
+				/>
 
 				<!-- Options Accordion -->
 				<OptionsAccordion
@@ -259,6 +337,7 @@
 				model={model()}
 				selectedOptions={selectedOptions()}
 				totalPrice={totalPrice()}
+				unitCost={unitCost()}
 				{quantities}
 			/>
 		{/if}

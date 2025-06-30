@@ -35,9 +35,9 @@ export type Database = {
           axle: string
           axle_value: number
           created_at: string
-          dealer_base_cost: number | null
-          dealer_cost: number
-          dealer_surcharge: number | null
+          mfg_base_cost: number | null
+          mfg_total_cost: number
+          mfg_surcharge: number | null
           height: string
           hitch: string | null
           id: string
@@ -55,9 +55,9 @@ export type Database = {
           axle: string
           axle_value: number
           created_at?: string
-          dealer_base_cost?: number | null
-          dealer_cost: number
-          dealer_surcharge?: number | null
+          mfg_base_cost?: number | null
+          mfg_total_cost: number
+          mfg_surcharge?: number | null
           height: string
           hitch?: string | null
           id?: string
@@ -75,9 +75,9 @@ export type Database = {
           axle?: string
           axle_value?: number
           created_at?: string
-          dealer_base_cost?: number | null
-          dealer_cost?: number
-          dealer_surcharge?: number | null
+          mfg_base_cost?: number | null
+          mfg_total_cost?: number
+          mfg_surcharge?: number | null
           height?: string
           hitch?: string | null
           id?: string

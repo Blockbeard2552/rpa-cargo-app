@@ -1,3 +1,5 @@
+<!-- src/components/OptionSelect.svelte -->
+
 <script lang="ts">
 	import CaretUpDown from 'phosphor-svelte/lib/CaretUpDown';
 	import CaretDoubleUp from 'phosphor-svelte/lib/CaretDoubleUp';

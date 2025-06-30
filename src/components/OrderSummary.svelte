@@ -1,3 +1,5 @@
+<!-- src/components/OrderSummary.svelte -->
+
 <script lang="ts">
 	import type { Tables } from '../lib/types/database.types';
 
@@ -5,6 +7,7 @@
 		model,
 		selectedOptions,
 		totalPrice,
+		unitCost,
 		quantities
 	}: {
 		model: Tables<'models'> | undefined;
@@ -18,6 +21,7 @@
 			subcategory: string;
 		}>;
 		totalPrice: number;
+		unitCost: number;
 		quantities: Record<string, number>;
 	} = $props();
 
@@ -43,7 +47,7 @@
 		return baseCost;
 	}
 
-	// Helper function to format option display with calculation details
+	// Helper function to format option display with quantity/PLF/Per Axle calculation
 	function formatOptionWithQuantity(option: any): string {
 		const quantity = quantities[option.id] || 1;
 		const baseCost = Number(option.cost);
@@ -112,8 +116,7 @@
 			</div>
 			<div class="flex items-center justify-between">
 				<span class="text-lg">{model.width} X {model.length} {model.axle}</span>
-				<span class="text-lg font-semibold">${(model.starting_price ?? 0).toLocaleString()}.00</span
-				>
+				<span class="text-lg font-semibold">${unitCost.toLocaleString()}.00</span>
 			</div>
 		</div>
 

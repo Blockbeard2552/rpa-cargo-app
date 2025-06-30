@@ -1,3 +1,5 @@
+<!-- src/components/OptionsAccordion.svelte -->
+
 <script lang="ts">
 	import { Accordion } from 'bits-ui';
 	import OptionSelect from './OptionSelect.svelte';
