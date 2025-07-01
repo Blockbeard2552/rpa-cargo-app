@@ -2,7 +2,7 @@
 
 <script lang="ts">
 	import ModelSelector from '../../components/ModelSelector.svelte';
-	import DealerMarkupInput from '../../components/DealerMarkupInput.svelte';
+	import PricingInputs from '../../components/PricingInputs.svelte';
 	import OptionsAccordion from '../../components/OptionsAccordion.svelte';
 	import PriceDisplay from '../../components/PriceDisplay.svelte';
 	import OrderSummary from '../../components/OrderSummary.svelte';
@@ -24,6 +24,8 @@
 
 	// Dealer markup state - initialize as 0, will be set when model loads
 	let dealerMarkup = $state<number>(0);
+	let includeSalesTax = $state<boolean>(false);
+	let shippingCost = $state<number>(0);
 
 	let customerName = $state<string>('');
 	let customerEmail = $state<string>('');
@@ -185,7 +187,7 @@
 	});
 
 	// Calculate total price with all cost modifiers
-	let totalPrice = $derived(() => {
+	let subtotal = $derived(() => {
 		if (!model()) return 0;
 
 		let total = unitCost(); // Start with calculated base price
@@ -316,8 +318,8 @@
 			mfgSurcharge: Number(model()!.mfg_surcharge) || 0,
 			dealerMarkup: dealerMarkup,
 			unitCost: unitCost(),
-			totalPrice: totalPrice(),
-			optionsCost: totalPrice() - unitCost(),
+			subtotal: subtotal(),
+			optionsCost: subtotal() - unitCost(),
 			hasPorch: hasPorch,
 			porchLength: porchLength,
 			boxLength: boxLength(),
@@ -336,7 +338,12 @@
 			<!-- Show dealer markup input and other controls when model is selected -->
 			{#if model()}
 				<!-- Dealer Markup Input -->
-				<DealerMarkupInput bind:dealerMarkup defaultMarkup={Number(model()!.dealer_mark_up) || 0} />
+				<PricingInputs
+					bind:dealerMarkup
+					bind:includeSalesTax
+					bind:shippingCost
+					defaultMarkup={Number(model()!.dealer_mark_up) || 0}
+				/>
 				<CustomerInfo bind:customerName bind:customerEmail bind:customerPhone />
 
 				<!-- Debug info (remove this later) -->
@@ -361,12 +368,13 @@
 
 				<!-- Price Display -->
 				<PriceDisplay
-					totalPrice={totalPrice()}
+					subtotal={subtotal()}
 					unitCost={unitCost()}
 					showBreakdown={true}
 					mfgBaseCost={Number(model()!.mfg_base_cost) || 0}
 					mfgSurcharge={Number(model()!.mfg_surcharge) || 0}
 					{dealerMarkup}
+					{shippingCost}
 				/>
 
 				<!-- Options Accordion -->
@@ -389,7 +397,7 @@
 			<OrderSummary
 				model={model()}
 				selectedOptions={selectedOptions()}
-				totalPrice={totalPrice()}
+				subtotal={subtotal()}
 				unitCost={unitCost()}
 				{quantities}
 				{optionDimensions}

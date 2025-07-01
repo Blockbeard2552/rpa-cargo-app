@@ -6,7 +6,7 @@
 	let {
 		model,
 		selectedOptions,
-		totalPrice,
+		subtotal,
 		unitCost,
 		quantities,
 		optionDimensions,
@@ -25,7 +25,7 @@
 			category: string;
 			subcategory: string;
 		}>;
-		totalPrice: number;
+		subtotal: number;
 		unitCost: number;
 		quantities: Record<string, number>;
 		optionDimensions: Record<string, { width?: number; height?: number; location?: string }>;
@@ -275,8 +275,8 @@
 		<!-- Total Cost -->
 		<div class="mt-6 border-t border-gray-300 pt-4">
 			<div class="flex items-center justify-between">
-				<h2 class="text-2xl font-bold text-gray-900">Total Cost</h2>
-				<span class="text-3xl font-bold text-gray-900">${totalPrice.toLocaleString()}.00</span>
+				<h2 class="text-2xl font-bold text-gray-900">Subtotal</h2>
+				<span class="text-3xl font-bold text-gray-900">${subtotal.toLocaleString()}.00</span>
 			</div>
 		</div>
 	</div>
