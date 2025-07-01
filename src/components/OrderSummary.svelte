@@ -7,13 +7,17 @@
 		model,
 		selectedOptions,
 		subtotal,
+		finalTotal,
+		salesTax,
 		unitCost,
 		quantities,
 		optionDimensions,
 		optionColors,
 		customerName,
 		customerEmail,
-		customerPhone
+		customerPhone,
+		shippingCost,
+		depositAmount
 	}: {
 		model: Tables<'models'> | undefined;
 		selectedOptions: Array<{
@@ -26,6 +30,8 @@
 			subcategory: string;
 		}>;
 		subtotal: number;
+		finalTotal: number;
+		salesTax: number;
 		unitCost: number;
 		quantities: Record<string, number>;
 		optionDimensions: Record<string, { width?: number; height?: number; location?: string }>;
@@ -33,6 +39,8 @@
 		customerName: string;
 		customerEmail: string;
 		customerPhone: string;
+		shippingCost: number;
+		depositAmount: number;
 	} = $props();
 
 	// Get current date

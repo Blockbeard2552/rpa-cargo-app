@@ -186,7 +186,7 @@
 		return options;
 	});
 
-	// Calculate total price with all cost modifiers
+	// Calculate subtotal (before tax and shipping)
 	let subtotal = $derived(() => {
 		if (!model()) return 0;
 
@@ -237,6 +237,21 @@
 		});
 
 		return total;
+	});
+
+	// Calculate sales tax (8% of subtotal if enabled)
+	let salesTax = $derived(() => {
+		return includeSalesTax ? Math.round(subtotal() * 0.08) : 0;
+	});
+
+	// Calculate final total (subtotal + sales tax + shipping)
+	let finalTotal = $derived(() => {
+		return subtotal() + salesTax() + shippingCost;
+	});
+
+	// Calculate deposit amount (10% of final total)
+	let depositAmount = $derived(() => {
+		return Math.round(finalTotal() * 0.1);
 	});
 
 	// Initialize quantity when option is selected
@@ -369,12 +384,15 @@
 				<!-- Price Display -->
 				<PriceDisplay
 					subtotal={subtotal()}
+					finalTotal={finalTotal()}
 					unitCost={unitCost()}
+					depositAmount={depositAmount()}
+					salesTax={salesTax()}
+					{shippingCost}
 					showBreakdown={true}
 					mfgBaseCost={Number(model()!.mfg_base_cost) || 0}
 					mfgSurcharge={Number(model()!.mfg_surcharge) || 0}
 					{dealerMarkup}
-					{shippingCost}
 				/>
 
 				<!-- Options Accordion -->
@@ -398,6 +416,9 @@
 				model={model()}
 				selectedOptions={selectedOptions()}
 				subtotal={subtotal()}
+				finalTotal={finalTotal()}
+				depositAmount={depositAmount()}
+				salesTax={salesTax()}
 				unitCost={unitCost()}
 				{quantities}
 				{optionDimensions}
@@ -405,6 +426,7 @@
 				{customerName}
 				{customerEmail}
 				{customerPhone}
+				{shippingCost}
 			/>
 		{/if}
 	</div>
