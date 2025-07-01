@@ -76,6 +76,11 @@
 			<Accordion.Content
 				class="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden text-sm tracking-[-0.01em]"
 			>
+				<div>
+					<p class="text-dark-50 mb-2 text-sm">
+						{cat.note || ''}
+					</p>
+				</div>
 				<OptionSelect
 					subcategories={cat.subcategories}
 					{model}
