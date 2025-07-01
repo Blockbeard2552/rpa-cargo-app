@@ -28,33 +28,51 @@
 	// Filter options based on selected model
 	function formatOptions(options: Tables<'options'>[]): FormattedOption[] {
 		if (!model) {
-			return options.map((opt) => ({
+			const allOptions = options.map((opt) => ({
 				value: String(opt.id),
 				label: `${opt.name} (${opt.cost})`,
 				note: opt.note || ''
 			}));
+
+			// Sort alphabetically by label
+			return allOptions.sort((a, b) => a.label.localeCompare(b.label));
 		}
 
-		return options
-			.filter((opt) => {
-				// Include if for_widths is NULL or contains model width (convert to string)
-				const widthMatch = opt.for_widths === null || opt.for_widths.includes(String(model.width));
+		const filteredOptions = options.filter((opt) => {
+			// Include if for_widths is NULL or contains model width (convert to string)
+			const widthMatch = opt.for_widths === null || opt.for_widths.includes(model.width);
 
-				// Include if for_lengths is NULL or contains model length
-				const lengthMatch = opt.for_lengths === null || opt.for_lengths.includes(model.length);
+			// Include if for_lengths is NULL or contains model length
+			const lengthMatch = opt.for_lengths === null || opt.for_lengths.includes(model.length);
 
-				// Include if for_axle_value is NULL or matches model axle (convert types as needed)
-				const axleMatch =
-					opt.for_axle_value === null || String(opt.for_axle_value) === String(model.axle);
+			// Include if for_axle_value is NULL or matches model axle (convert types as needed)
+			const axleMatch = opt.for_axle_value === null || opt.for_axle_value === model.axle_value;
 
-				// Option is included only if ALL conditions are met
-				return widthMatch && lengthMatch && axleMatch;
-			})
-			.map((opt) => ({
-				value: String(opt.id),
-				label: `${opt.name} (${opt.cost})`,
-				note: opt.note || ''
-			}));
+			// Include if for_axle_value is NULL or matches model axle (convert types as needed)
+			const axleLoadMatch =
+				opt.for_axle_load === null || opt.for_axle_load === model.standard_axle_load;
+
+			// Option is included only if ALL conditions are met
+			return widthMatch && lengthMatch && axleMatch && axleLoadMatch;
+		});
+
+		// Log only options for specific subcategory
+		const targetSubcategoryId = '0af2111f-095f-492d-aa64-6e3f14cacf8c';
+		const targetOptions = filteredOptions.filter(
+			(opt) => opt.subcategory_id === targetSubcategoryId
+		);
+		if (targetOptions.length > 0) {
+			console.log(`Filtered options for subcategory ${targetSubcategoryId}:`, targetOptions);
+		}
+
+		const formattedOptions = filteredOptions.map((opt) => ({
+			value: String(opt.id),
+			label: `${opt.name} (${opt.cost})`,
+			note: opt.note || ''
+		}));
+
+		// Sort alphabetically by label
+		return formattedOptions.sort((a, b) => a.label.localeCompare(b.label));
 	}
 </script>
 

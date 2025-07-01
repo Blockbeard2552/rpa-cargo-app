@@ -103,7 +103,7 @@ export type Database = {
           for_axle_value: number | null
           for_lengths: number[] | null
           for_mainframe: string | null
-          for_widths: string[] | null
+          for_widths: number[] | null
           hitch: string | null
           id: number
           include_height: boolean | null
@@ -124,7 +124,7 @@ export type Database = {
           for_axle_value?: number | null
           for_lengths?: number[] | null
           for_mainframe?: string | null
-          for_widths?: string[] | null
+          for_widths?: number[] | null
           hitch?: string | null
           id?: number
           include_height?: boolean | null
@@ -145,7 +145,7 @@ export type Database = {
           for_axle_value?: number | null
           for_lengths?: number[] | null
           for_mainframe?: string | null
-          for_widths?: string[] | null
+          for_widths?: number[] | null
           hitch?: string | null
           id?: number
           include_height?: boolean | null

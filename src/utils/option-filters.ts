@@ -1,3 +1,4 @@
+import type { FormattedOption } from '$lib/types/configurator.types';
 import type { Tables } from '../lib/types/database.types';
 
 export function filterOptionsForModel(
@@ -7,9 +8,9 @@ export function filterOptionsForModel(
 	if (!model) return options;
 
 	return options.filter((opt) => {
-		const widthMatch = opt.for_widths === null || opt.for_widths === model.width;
-		const lengthMatch = opt.for_lengths === null || opt.for_lengths === model.length;
-		const axleMatch = opt.for_axle_value === null || opt.for_axle_value === model.axle;
+		const widthMatch = opt.for_widths === null || opt.for_widths.includes(model.width);
+		const lengthMatch = opt.for_lengths === null || opt.for_lengths.includes(model.length);
+		const axleMatch = opt.for_axle_value === null || opt.for_axle_value === model.axle_value;
 		
 		return widthMatch && lengthMatch && axleMatch;
 	});

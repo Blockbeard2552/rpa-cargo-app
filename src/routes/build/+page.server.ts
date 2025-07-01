@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
-import type { Category } from '$lib/types/augmented';
+import type { Category } from '$lib/types/configurator.types'
 
 
 export const load = async () => {
@@ -31,6 +31,7 @@ export const load = async () => {
           for_lengths,
           for_widths,
           for_axle_value,
+          for_axle_load,
           for_mainframe,
           subcategory_id,
           include_height,
