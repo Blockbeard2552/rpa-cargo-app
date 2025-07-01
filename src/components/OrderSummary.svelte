@@ -10,7 +10,10 @@
 		unitCost,
 		quantities,
 		optionDimensions,
-		optionColors
+		optionColors,
+		customerName,
+		customerEmail,
+		customerPhone
 	}: {
 		model: Tables<'models'> | undefined;
 		selectedOptions: Array<{
@@ -27,6 +30,9 @@
 		quantities: Record<string, number>;
 		optionDimensions: Record<string, { width?: number; height?: number; location?: string }>;
 		optionColors: Record<string, string>;
+		customerName: string;
+		customerEmail: string;
+		customerPhone: string;
 	} = $props();
 
 	// Get current date
@@ -102,14 +108,17 @@
 		return !!(dimensions?.width || dimensions?.height || dimensions?.location || color);
 	}
 
-	// Group options by category
+	// Group options by category, then by subcategory
 	let groupedOptions = $derived(() => {
-		const groups: Record<string, Array<any>> = {};
+		const groups: Record<string, Record<string, Array<any>>> = {};
 		selectedOptions.forEach((option) => {
 			if (!groups[option.category]) {
-				groups[option.category] = [];
+				groups[option.category] = {};
 			}
-			groups[option.category].push(option);
+			if (!groups[option.category][option.subcategory]) {
+				groups[option.category][option.subcategory] = [];
+			}
+			groups[option.category][option.subcategory].push(option);
 		});
 		return groups;
 	});
@@ -145,12 +154,21 @@
 		<div class="mb-6">
 			<h1 class="mb-2 text-2xl font-bold text-gray-900">Order Summary</h1>
 			<p class="text-gray-600">Date: {currentDate}</p>
+			{#if customerName}
+				<p class="text-gray-600">Customer Name: {customerName}</p>
+			{/if}
+			{#if customerEmail}
+				<p class="text-gray-600">Email: {customerEmail}</p>
+			{/if}
+			{#if customerPhone}
+				<p class="text-gray-600">Phone: {customerPhone}</p>
+			{/if}
 		</div>
 
 		<!-- Selected Model -->
 		<div class="mb-6">
-			<div class="mb-3 flex items-center justify-between">
-				<h2 class="text-xl font-bold text-gray-900">Selected Model</h2>
+			<div class="mb-2 flex items-center justify-between">
+				<h2 class="text-lg font-bold text-gray-900">Selected Model</h2>
 			</div>
 			<div class="flex items-center justify-between">
 				<span class="text-lg">{model.width} X {model.length} {model.axle}</span>
@@ -161,23 +179,23 @@
 		<!-- Standard Features -->
 		{#if standardFeatures().length > 0}
 			<div class="mb-6">
-				<h2 class="mb-4 text-xl font-bold text-gray-900">Standard Features</h2>
+				<h2 class="mb-2 text-lg font-bold text-gray-900">Standard Features</h2>
 				<div class="grid grid-cols-1 gap-x-6 gap-y-2 md:grid-cols-2">
 					<!-- Left Column -->
-					<div class="space-y-2">
+					<div class="space-y-.5">
 						{#each leftFeatures() as feature}
 							<div class="flex items-start">
-								<span class="mr-2 text-gray-900">•</span>
-								<span class="text-gray-900">{feature}</span>
+								<span class="mr-2 text-sm text-gray-900">•</span>
+								<span class="text-sm text-gray-900">{feature}</span>
 							</div>
 						{/each}
 					</div>
 					<!-- Right Column -->
-					<div class="space-y-2">
+					<div class="space-y-.5">
 						{#each rightFeatures() as feature}
 							<div class="flex items-start">
-								<span class="mr-2 text-gray-900">•</span>
-								<span class="text-gray-900">{feature}</span>
+								<span class="mr-2 text-sm text-gray-900">•</span>
+								<span class="text-sm text-gray-900">{feature}</span>
 							</div>
 						{/each}
 					</div>
@@ -185,62 +203,69 @@
 			</div>
 		{/if}
 
-		<!-- Selected Options by Category -->
-		{#each Object.entries(groupedOptions()) as [categoryName, options]}
+		<!-- Selected Options by Category and Subcategory -->
+		{#each Object.entries(groupedOptions()) as [categoryName, subcategories]}
 			<div class="mb-6">
-				<h2 class="mb-3 text-xl font-bold text-gray-900">{categoryName}</h2>
-				<div class="space-y-3">
-					{#each options as option}
-						<div class="flex items-start justify-between">
-							<div class="flex-1">
-								<span class="font-medium text-gray-900">{formatOptionWithQuantity(option)}</span>
-
-								<!-- Show custom details (dimensions, color, etc.) -->
-								{#if hasCustomDetails(option.id)}
-									<div class="mt-1 ml-2 text-sm font-medium text-gray-700">
-										{formatOptionDetails(option.id)}
-									</div>
-								{/if}
-
-								<!-- Show calculation details for PLF items -->
-								{#if option.cost_mod === 'PLF' && model}
-									<div class="mt-1 ml-2 text-sm text-gray-500">
-										{model.length} feet × ${Number(option.cost).toLocaleString()} per linear foot
-									</div>
-								{/if}
-
-								<!-- Show calculation details for Per Axle items -->
-								{#if option.cost_mod === 'Per Axle' && model}
-									<div class="mt-1 ml-2 text-sm text-gray-500">
-										{model.axle_value} axles × ${Number(option.cost).toLocaleString()} per axle
-									</div>
-								{/if}
-
-								<!-- Show calculation details for quantity items -->
-								{#if (option.cost_mod === 'Each' || option.cost_mod === 'Per Foot') && (quantities[option.id] || 1) > 1}
-									<div class="mt-1 ml-2 text-sm text-gray-500">
-										{quantities[option.id]} × ${Number(option.cost).toLocaleString()}
-										{option.cost_mod.toLowerCase()}
-									</div>
-								{/if}
-
-								<!-- Show option notes -->
-								{#if option.note}
-									<div class="mt-1 ml-2 text-sm text-gray-500 italic">
-										{option.note}
-									</div>
-								{/if}
-
-								<!-- Show subcategory if different from option name -->
-								{#if option.subcategory && option.subcategory !== option.name}
-									<div class="mt-1 ml-4 text-sm text-gray-500">
-										{option.subcategory}
-									</div>
-								{/if}
+				<h2 class="mb-2 text-lg font-bold text-gray-900">{categoryName}</h2>
+				<div class="space-y-4">
+					{#each Object.entries(subcategories) as [subcategoryName, options]}
+						<div class="space-y-2">
+							<!-- Show subcategory name only once -->
+							<div class="text-md font-semibold text-gray-900">
+								{subcategoryName}
 							</div>
-							<span class="ml-4 text-lg font-semibold"
-								>${getEffectiveCost(option).toLocaleString()}.00</span
-							>
+
+							<!-- Options within this subcategory -->
+							<div class="ml-4 space-y-2">
+								{#each options as option}
+									<div class="flex items-start justify-between">
+										<div class="flex-1">
+											<span class="text-md text-500 font-medium"
+												>{formatOptionWithQuantity(option)}</span
+											>
+
+											<!-- Show custom details (dimensions, color, etc.) -->
+											{#if hasCustomDetails(option.id)}
+												<div class="mt-1 ml-2 text-sm font-medium text-gray-700">
+													{formatOptionDetails(option.id)}
+												</div>
+											{/if}
+
+											<!-- Show calculation details for PLF items -->
+											{#if option.cost_mod === 'PLF' && model}
+												<div class="mt-1 ml-2 text-sm text-gray-500">
+													{model.length} feet × ${Number(option.cost).toLocaleString()} per linear foot
+												</div>
+											{/if}
+
+											<!-- Show calculation details for Per Axle items -->
+											{#if option.cost_mod === 'Per Axle' && model}
+												<div class="mt-1 ml-2 text-sm text-gray-500">
+													{model.axle_value} axles × ${Number(option.cost).toLocaleString()} per axle
+												</div>
+											{/if}
+
+											<!-- Show calculation details for quantity items -->
+											{#if (option.cost_mod === 'Each' || option.cost_mod === 'Per Foot') && (quantities[option.id] || 1) > 1}
+												<div class="mt-1 ml-2 text-sm text-gray-500">
+													{quantities[option.id]} × ${Number(option.cost).toLocaleString()}
+													{option.cost_mod.toLowerCase()}
+												</div>
+											{/if}
+
+											<!-- Show option notes -->
+											{#if option.note}
+												<div class="mt-1 ml-2 text-sm text-gray-500 italic">
+													{option.note}
+												</div>
+											{/if}
+										</div>
+										<span class="ml-4 text-lg font-semibold"
+											>${getEffectiveCost(option).toLocaleString()}.00</span
+										>
+									</div>
+								{/each}
+							</div>
 						</div>
 					{/each}
 				</div>

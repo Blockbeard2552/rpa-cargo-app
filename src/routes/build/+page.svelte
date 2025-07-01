@@ -8,6 +8,7 @@
 	import OrderSummary from '../../components/OrderSummary.svelte';
 	import type { Tables } from '../../lib/types/database.types';
 	import type { FormattedOption } from '../../lib/types/configurator.types';
+	import CustomerInfo from '../../components/CustomerInfo.svelte';
 
 	// This would come from your page data
 	const { data } = $props<{
@@ -23,6 +24,10 @@
 
 	// Dealer markup state - initialize as 0, will be set when model loads
 	let dealerMarkup = $state<number>(0);
+
+	let customerName = $state<string>('');
+	let customerEmail = $state<string>('');
+	let customerPhone = $state<string>('');
 
 	// Format models for dropdown
 	let formattedModels = $derived(() =>
@@ -332,9 +337,10 @@
 			{#if model()}
 				<!-- Dealer Markup Input -->
 				<DealerMarkupInput bind:dealerMarkup defaultMarkup={Number(model()!.dealer_mark_up) || 0} />
+				<CustomerInfo bind:customerName bind:customerEmail bind:customerPhone />
 
 				<!-- Debug info (remove this later) -->
-				{#if debugInfo()}
+				<!-- {#if debugInfo()}
 					<div
 						class="w-full max-w-[296px] rounded-lg border border-blue-200 bg-blue-50 p-4 text-xs"
 					>
@@ -351,7 +357,7 @@
 						<div>Box Length: {debugInfo()?.boxLength}'</div>
 						<div>Box Model Found: {debugInfo()?.boxModelFound}</div>
 					</div>
-				{/if}
+				{/if} -->
 
 				<!-- Price Display -->
 				<PriceDisplay
@@ -388,6 +394,9 @@
 				{quantities}
 				{optionDimensions}
 				{optionColors}
+				{customerName}
+				{customerEmail}
+				{customerPhone}
 			/>
 		{/if}
 	</div>
