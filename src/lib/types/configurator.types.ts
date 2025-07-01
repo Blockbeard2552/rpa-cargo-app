@@ -14,6 +14,7 @@ export interface FormattedOption {
 	value: string;
 	label: string;
 	note?: string;
+	color_options?: string[];
 }
 
 export interface SelectionState {
@@ -28,4 +29,5 @@ export interface SelectedOption {
 	cost: number;
 	cost_mod: string;
 	quantity: number;
+	color_options?: string[];
 }

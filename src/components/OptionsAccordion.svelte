@@ -13,7 +13,8 @@
 		singleSelections = $bindable(),
 		multipleSelections = $bindable(),
 		quantities = $bindable(),
-		optionDimensions = $bindable()
+		optionDimensions = $bindable(),
+		optionColors = $bindable()
 	}: {
 		categories: any[];
 		model: Tables<'models'> | undefined;
@@ -21,6 +22,7 @@
 		multipleSelections: Record<string, string[]>;
 		quantities: Record<string, number>;
 		optionDimensions: Record<string, { width?: number; height?: number; location?: string }>;
+		optionColors: Record<string, string>;
 	} = $props();
 
 	// Filter options based on selected model
@@ -81,6 +83,7 @@
 					bind:multipleSelections
 					bind:quantities
 					bind:optionDimensions
+					bind:optionColors
 					{formatOptions}
 				/>
 			</Accordion.Content>

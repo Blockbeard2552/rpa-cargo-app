@@ -8,7 +8,9 @@
 		selectedOptions,
 		totalPrice,
 		unitCost,
-		quantities
+		quantities,
+		optionDimensions,
+		optionColors
 	}: {
 		model: Tables<'models'> | undefined;
 		selectedOptions: Array<{
@@ -23,6 +25,8 @@
 		totalPrice: number;
 		unitCost: number;
 		quantities: Record<string, number>;
+		optionDimensions: Record<string, { width?: number; height?: number; location?: string }>;
+		optionColors: Record<string, string>;
 	} = $props();
 
 	// Get current date
@@ -62,6 +66,40 @@
 			return `${option.name} (${model.axle_value} axles × $${baseCost} per axle)`;
 		}
 		return option.name;
+	}
+
+	// Helper function to format dimensions, color, and other details
+	function formatOptionDetails(optionId: string): string {
+		const dimensions = optionDimensions[optionId];
+		const color = optionColors[optionId];
+
+		const parts = [];
+
+		if (dimensions?.width) {
+			parts.push(`${dimensions.width}" W`);
+		}
+
+		if (dimensions?.height) {
+			parts.push(`${dimensions.height}" H`);
+		}
+
+		if (dimensions?.location) {
+			parts.push(`Location: ${dimensions.location}`);
+		}
+
+		if (color) {
+			parts.push(`Color: ${color}`);
+		}
+
+		return parts.length > 0 ? parts.join(' × ') : '';
+	}
+
+	// Check if option has any custom details (dimensions or color)
+	function hasCustomDetails(optionId: string): boolean {
+		const dimensions = optionDimensions[optionId];
+		const color = optionColors[optionId];
+
+		return !!(dimensions?.width || dimensions?.height || dimensions?.location || color);
 	}
 
 	// Group options by category
@@ -151,11 +189,18 @@
 		{#each Object.entries(groupedOptions()) as [categoryName, options]}
 			<div class="mb-6">
 				<h2 class="mb-3 text-xl font-bold text-gray-900">{categoryName}</h2>
-				<div class="space-y-2">
+				<div class="space-y-3">
 					{#each options as option}
 						<div class="flex items-start justify-between">
 							<div class="flex-1">
-								<span class="text-gray-900">{formatOptionWithQuantity(option)}</span>
+								<span class="font-medium text-gray-900">{formatOptionWithQuantity(option)}</span>
+
+								<!-- Show custom details (dimensions, color, etc.) -->
+								{#if hasCustomDetails(option.id)}
+									<div class="mt-1 ml-2 text-sm font-medium text-gray-700">
+										{formatOptionDetails(option.id)}
+									</div>
+								{/if}
 
 								<!-- Show calculation details for PLF items -->
 								{#if option.cost_mod === 'PLF' && model}
@@ -179,13 +224,16 @@
 									</div>
 								{/if}
 
+								<!-- Show option notes -->
 								{#if option.note}
 									<div class="mt-1 ml-2 text-sm text-gray-500 italic">
 										{option.note}
 									</div>
 								{/if}
+
+								<!-- Show subcategory if different from option name -->
 								{#if option.subcategory && option.subcategory !== option.name}
-									<div class="ml-4 text-sm text-gray-500">
+									<div class="mt-1 ml-4 text-sm text-gray-500">
 										{option.subcategory}
 									</div>
 								{/if}

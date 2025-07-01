@@ -39,6 +39,7 @@
 	let optionDimensions = $state<
 		Record<string, { width?: number; height?: number; location?: string }>
 	>({});
+	let optionColors = $state<Record<string, string>>({});
 
 	// Update dealer markup when model changes and clear selections
 	$effect(() => {
@@ -48,6 +49,7 @@
 			multipleSelections = {};
 			quantities = {};
 			optionDimensions = {};
+			optionColors = {};
 			// Set dealer markup from model
 			dealerMarkup = Number(model()!.dealer_mark_up) || 0;
 		}
@@ -337,7 +339,8 @@
 						class="w-full max-w-[296px] rounded-lg border border-blue-200 bg-blue-50 p-4 text-xs"
 					>
 						<div><strong>Debug Info:</strong></div>
-						<div>OG MFG Base Cost: ${debugInfo()?.originalMfgBaseCost}</div>
+						<div>Original MFG Base Cost: ${debugInfo()?.originalMfgBaseCost}</div>
+						<div>Adjusted MFG Base Cost: ${debugInfo()?.adjustedMfgBaseCost}</div>
 						<div>MFG Surcharge: ${debugInfo()?.mfgSurcharge}</div>
 						<div>Dealer Markup: ${debugInfo()?.dealerMarkup}</div>
 						<div>Unit Cost: ${debugInfo()?.unitCost}</div>
@@ -347,7 +350,6 @@
 						<div>Porch Length: {debugInfo()?.porchLength}'</div>
 						<div>Box Length: {debugInfo()?.boxLength}'</div>
 						<div>Box Model Found: {debugInfo()?.boxModelFound}</div>
-						<div>New MFG Base Cost: ${debugInfo()?.adjustedMfgBaseCost}</div>
 					</div>
 				{/if}
 
@@ -369,6 +371,7 @@
 					bind:multipleSelections
 					bind:quantities
 					bind:optionDimensions
+					bind:optionColors
 				/>
 			{/if}
 		</div>
@@ -383,6 +386,8 @@
 				totalPrice={totalPrice()}
 				unitCost={unitCost()}
 				{quantities}
+				{optionDimensions}
+				{optionColors}
 			/>
 		{/if}
 	</div>
