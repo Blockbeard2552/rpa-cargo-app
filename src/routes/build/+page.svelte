@@ -9,6 +9,7 @@
 	import type { Tables } from '../../lib/types/database.types';
 	import type { FormattedOption } from '../../lib/types/configurator.types';
 	import CustomerInfo from '../../components/CustomerInfo.svelte';
+	import SaveEstimate from '../../components/SaveEstimate.svelte';
 
 	// This would come from your page data
 	const { data } = $props<{
@@ -394,7 +395,26 @@
 					mfgSurcharge={Number(model()!.mfg_surcharge) || 0}
 					{dealerMarkup}
 				/>
-
+				{#if model()}
+					<SaveEstimate
+						model={model()}
+						selectedOptions={selectedOptions()}
+						{singleSelections}
+						{multipleSelections}
+						{quantities}
+						{optionDimensions}
+						{optionColors}
+						subtotal={subtotal()}
+						finalTotal={finalTotal()}
+						depositAmount={depositAmount()}
+						salesTax={salesTax()}
+						{shippingCost}
+						{dealerMarkup}
+						{customerName}
+						{customerEmail}
+						{customerPhone}
+					/>
+				{/if}
 				<!-- Options Accordion -->
 				<OptionsAccordion
 					{categories}
