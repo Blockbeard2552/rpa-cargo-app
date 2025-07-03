@@ -94,6 +94,12 @@
 					Print Estimate
 				</Button.Root>
 				<Button.Root
+					class="rounded-input shadow-mini inline-flex h-10 items-center justify-center bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
+					href="/estimate/{estimate.estimate_number}/edit"
+				>
+					Edit Estimate
+				</Button.Root>
+				<Button.Root
 					class="rounded-input shadow-mini inline-flex h-10 items-center justify-center bg-green-600 px-4 text-sm font-semibold text-white hover:bg-green-700"
 					onclick={convertToOrder}
 				>
