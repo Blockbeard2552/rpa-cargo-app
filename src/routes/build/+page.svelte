@@ -6,10 +6,11 @@
 	import OptionsAccordion from '../../components/OptionsAccordion.svelte';
 	import PriceDisplay from '../../components/PriceDisplay.svelte';
 	import OrderSummary from '../../components/OrderSummary.svelte';
-	import type { Tables } from '../../lib/types/database.types';
-	import type { FormattedOption } from '../../lib/types/configurator.types';
 	import CustomerInfo from '../../components/CustomerInfo.svelte';
 	import SaveEstimate from '../../components/SaveEstimate.svelte';
+	import { calculateAllPricing } from '../../utils/price-calculator';
+	import type { Tables } from '../../lib/types/database.types';
+	import type { FormattedOption } from '../../lib/types/configurator.types';
 
 	// This would come from your page data
 	const { data } = $props<{
@@ -63,197 +64,30 @@
 		}
 	});
 
-	// Helper to check if porch is selected (ID 230) and get porch length
-	let porchInfo = $derived(() => {
-		let porchLength = 0;
-		let hasPorch = false;
-
-		// Check single selections for porch (ID 230)
-		Object.values(singleSelections).forEach((selectedId) => {
-			if (selectedId === '230') {
-				hasPorch = true;
-				porchLength = quantities[selectedId] || 0;
-			}
+	// Calculate all pricing using the price calculator
+	let pricingResult = $derived(() => {
+		return calculateAllPricing({
+			model: model(),
+			models,
+			singleSelections,
+			multipleSelections,
+			quantities,
+			categories,
+			dealerMarkup,
+			includeSalesTax,
+			shippingCost
 		});
-
-		// Check multiple selections for porch (ID 230)
-		Object.values(multipleSelections).forEach((selectedIds) => {
-			if (selectedIds?.length > 0) {
-				selectedIds.forEach((selectedId) => {
-					if (selectedId === '230') {
-						hasPorch = true;
-						porchLength += quantities[selectedId] || 0;
-					}
-				});
-			}
-		});
-
-		return { hasPorch, porchLength };
 	});
 
-	// Calculate box length when porch is present
-	let boxLength = $derived(() => {
-		if (!model()) return 0;
-
-		const { hasPorch, porchLength } = porchInfo();
-
-		if (hasPorch && porchLength > 0) {
-			return model()!.length - porchLength;
-		}
-
-		return model()!.length;
-	});
-
-	// Calculate base price using manufacturer pricing + dealer markup
-	let unitCost = $derived(() => {
-		if (!model()) return 0;
-
-		const { hasPorch, porchLength } = porchInfo();
-
-		let mfgBaseCost = Number(model()!.mfg_base_cost) || 0;
-		const mfgSurcharge = Number(model()!.mfg_surcharge) || 0;
-
-		// If porch is selected, find the model with the box length
-		if (hasPorch && porchLength > 0) {
-			const boxLength = model()!.length - porchLength;
-
-			// Find a model with same width/axle but box length
-			const boxModel = models.find(
-				(m: Tables<'models'>) =>
-					m.width === model()!.width && m.axle === model()!.axle && m.length === boxLength
-			);
-
-			if (boxModel) {
-				mfgBaseCost = Number(boxModel.mfg_base_cost) || 0;
-			}
-			// If no matching box model found, use original (fallback)
-		}
-
-		return mfgBaseCost + mfgSurcharge + dealerMarkup;
-	});
-
-	// Get selected options with category info for summary
-	let selectedOptions = $derived(() => {
-		const options: Array<{
-			id: string;
-			name: string;
-			cost: number;
-			cost_mod: string;
-			note: string;
-			category: string;
-			subcategory: string;
-		}> = [];
-
-		// Add single selections
-		Object.entries(singleSelections).forEach(([subId, selectedId]) => {
-			if (selectedId) {
-				const option = findOptionById(selectedId, categories);
-				const categoryInfo = findCategoryInfoForOption(selectedId, categories);
-				if (option && categoryInfo) {
-					options.push({
-						id: selectedId,
-						name: option.name,
-						cost: Number(option.cost),
-						cost_mod: option.cost_mod || '',
-						note: option.note || '',
-						category: categoryInfo.categoryName,
-						subcategory: categoryInfo.subcategoryName
-					});
-				}
-			}
-		});
-
-		// Add multiple selections
-		Object.entries(multipleSelections).forEach(([subId, selectedIds]) => {
-			if (selectedIds?.length > 0) {
-				selectedIds.forEach((selectedId) => {
-					const option = findOptionById(selectedId, categories);
-					const categoryInfo = findCategoryInfoForOption(selectedId, categories);
-					if (option && categoryInfo) {
-						options.push({
-							id: selectedId,
-							name: option.name,
-							cost: Number(option.cost),
-							cost_mod: option.cost_mod || '',
-							note: option.note || '',
-							category: categoryInfo.categoryName,
-							subcategory: categoryInfo.subcategoryName
-						});
-					}
-				});
-			}
-		});
-
-		return options;
-	});
-
-	// Calculate subtotal (before tax and shipping)
-	let subtotal = $derived(() => {
-		if (!model()) return 0;
-
-		let total = unitCost(); // Start with calculated base price
-
-		// Add costs from single selections
-		Object.values(singleSelections).forEach((selectedId) => {
-			if (selectedId) {
-				const option = findOptionById(selectedId, categories);
-				if (option) {
-					const quantity = quantities[selectedId] || 1;
-					const cost = Number(option.cost) || 0;
-
-					if (option.cost_mod === 'Each' || option.cost_mod === 'Per Foot') {
-						total += cost * quantity;
-					} else if (option.cost_mod === 'PLF') {
-						total += cost * model()!.length;
-					} else if (option.cost_mod === 'Per Axle') {
-						total += cost * model()!.axle_value;
-					} else {
-						total += cost;
-					}
-				}
-			}
-		});
-
-		// Add costs from multiple selections
-		Object.values(multipleSelections).forEach((selectedIds) => {
-			if (selectedIds?.length > 0) {
-				selectedIds.forEach((selectedId) => {
-					const option = findOptionById(selectedId, categories);
-					if (option) {
-						const quantity = quantities[selectedId] || 1;
-						const cost = Number(option.cost) || 0;
-
-						if (option.cost_mod === 'Each' || option.cost_mod === 'Per Foot') {
-							total += cost * quantity;
-						} else if (option.cost_mod === 'PLF') {
-							total += cost * model()!.length;
-						} else if (option.cost_mod === 'Per Axle') {
-							total += cost * model()!.axle_value;
-						} else {
-							total += cost;
-						}
-					}
-				});
-			}
-		});
-
-		return total;
-	});
-
-	// Calculate sales tax (8% of subtotal if enabled)
-	let salesTax = $derived(() => {
-		return includeSalesTax ? Math.round(subtotal() * 0.08) : 0;
-	});
-
-	// Calculate final total (subtotal + sales tax + shipping)
-	let finalTotal = $derived(() => {
-		return subtotal() + salesTax() + shippingCost;
-	});
-
-	// Calculate deposit amount (10% of final total)
-	let depositAmount = $derived(() => {
-		return Math.round(finalTotal() * 0.1);
-	});
+	// Extract individual values for easier use
+	let unitCost = $derived(() => pricingResult().unitCost);
+	let subtotal = $derived(() => pricingResult().subtotal);
+	let finalTotal = $derived(() => pricingResult().finalTotal);
+	let depositAmount = $derived(() => pricingResult().depositAmount);
+	let salesTax = $derived(() => pricingResult().salesTax);
+	let selectedOptions = $derived(() => pricingResult().selectedOptions);
+	let porchInfo = $derived(() => pricingResult().porchInfo);
+	let boxLength = $derived(() => pricingResult().boxLength);
 
 	// Initialize quantity when option is selected
 	$effect(() => {
@@ -275,36 +109,6 @@
 		});
 	});
 
-	// Helper function to find option by ID across all categories
-	function findOptionById(id: string, categories: any[]): Tables<'options'> | undefined {
-		for (const cat of categories) {
-			for (const sub of cat.subcategories) {
-				const option = sub.options.find((opt: Tables<'options'>) => String(opt.id) === id);
-				if (option) return option;
-			}
-		}
-		return undefined;
-	}
-
-	// Helper function to find category and subcategory info for an option
-	function findCategoryInfoForOption(
-		id: string,
-		categories: any[]
-	): { categoryName: string; subcategoryName: string } | undefined {
-		for (const cat of categories) {
-			for (const sub of cat.subcategories) {
-				const option = sub.options.find((opt: Tables<'options'>) => String(opt.id) === id);
-				if (option) {
-					return {
-						categoryName: cat.name,
-						subcategoryName: sub.name
-					};
-				}
-			}
-		}
-		return undefined;
-	}
-
 	// Add some debug info temporarily
 	let debugInfo = $derived(() => {
 		if (!model()) return null;
@@ -316,10 +120,10 @@
 
 		// Same logic as unitCost for debugging
 		if (hasPorch && porchLength > 0) {
-			const boxLength = model()!.length - porchLength;
+			const calculatedBoxLength = model()!.length - porchLength;
 			const boxModel = models.find(
 				(m: Tables<'models'>) =>
-					m.width === model()!.width && m.axle === model()!.axle && m.length === boxLength
+					m.width === model()!.width && m.axle === model()!.axle && m.length === calculatedBoxLength
 			);
 
 			if (boxModel) {
@@ -373,7 +177,7 @@
 						<div>MFG Surcharge: ${debugInfo()?.mfgSurcharge}</div>
 						<div>Dealer Markup: ${debugInfo()?.dealerMarkup}</div>
 						<div>Unit Cost: ${debugInfo()?.unitCost}</div>
-						<div>Total Price: ${debugInfo()?.totalPrice}</div>
+						<div>Subtotal: ${debugInfo()?.subtotal}</div>
 						<div>Options Cost: ${debugInfo()?.optionsCost}</div>
 						<div>Has Porch: {debugInfo()?.hasPorch}</div>
 						<div>Porch Length: {debugInfo()?.porchLength}'</div>
